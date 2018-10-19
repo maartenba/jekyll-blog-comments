@@ -57,8 +57,8 @@ namespace JekyllBlogCommentsAzureV2
 
             if (errors.Any())
             {
-                log.LogError(String.Join("\n", errors);
-                return new BadRequestErrorMessageResult(String.Join("\n", errors));
+                log.LogError(string.Join("\n", errors));
+                return new BadRequestErrorMessageResult(string.Join("\n", errors));
             }
 
             log.LogInformation("Success!");
