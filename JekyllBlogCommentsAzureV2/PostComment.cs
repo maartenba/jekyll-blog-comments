@@ -48,15 +48,20 @@ namespace JekyllBlogCommentsAzureV2
                     $"This Jekyll comments receiever does not handle forms for '${postedSite}'. You should point to your own instance.");
             }
 
+            log.LogInformation("Try creating comment from form...");
             if (TryCreateCommentFromForm(request.Form, out var comment, out var errors))
             {
+                log.LogInformation("Posting pull request...");
                 await CreateCommentAsPullRequest(configuration, comment);
             }
 
             if (errors.Any())
             {
+                log.LogError(String.Join("\n", errors);
                 return new BadRequestErrorMessageResult(String.Join("\n", errors));
             }
+
+            log.LogInformation("Success!");
 
             if (!Uri.TryCreate(configuration["RedirectUrl"], UriKind.Absolute, out var redirectUri))
             {

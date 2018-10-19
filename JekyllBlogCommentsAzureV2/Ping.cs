@@ -11,6 +11,8 @@ namespace JekyllBlogCommentsAzureV2
         [FunctionName("Ping")]
         public static IActionResult Run([HttpTrigger(AuthorizationLevel.Function, "get", Route = null)]HttpRequest request, ILogger log)
         {
+            log.LogInformation("Ping request received.");
+
             return new OkObjectResult("Application is running.");
         }
     }
