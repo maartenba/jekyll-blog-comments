@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -93,7 +94,7 @@ namespace JekyllBlogCommentsAzureV2
             var newBranch = await github.Git.Reference.Create(repo.Id, new NewReference($"refs/heads/comment-{comment.id}", defaultBranch.Commit.Sha));
 
             // Create a new file with the comments in it
-            var fileRequest = new CreateFileRequest($"Comment by {comment.name} on {comment.post_id}", new SerializerBuilder().Build().Serialize(comment), newBranch.Ref)
+            var fileRequest = new CreateFileRequest($"Comment by {comment.name} on {comment.post_id}", new SerializerBuilder().Build().Serialize(comment.WithoutEmail()), newBranch.Ref)
             {
                 Committer = new Committer(comment.name, comment.email ?? configuration["CommentFallbackCommitEmail"] ?? "redacted@example.com", comment.date)
             };
@@ -180,20 +181,31 @@ namespace JekyllBlogCommentsAzureV2
             }
 
             [YamlIgnore]
-            public string post_id { get; }
+            public string post_id { get; private set; }
 
-            public string id { get; }
-            public DateTime date { get; }
-            public string name { get; }
-            public string email { get; }
-
-            [YamlMember(typeof(string))]
-            public Uri avatar { get; }
+            public string id { get; private set; }
+            public DateTime date { get; private set; }
+            public string name { get; private set; }
+            public string email { get; private set; }
 
             [YamlMember(typeof(string))]
-            public Uri url { get; }
+            public Uri avatar { get; private set; }
 
-            public string message { get; }
+            [YamlMember(typeof(string))]
+            public Uri url { get; private set; }
+
+            public string message { get; private set; }
+
+            public Comment WithoutEmail()
+            {
+                return new Comment(
+                    post_id,
+                    message,
+                    name,
+                    null,
+                    url,
+                    avatar?.ToString());
+            }
         }
     }
 }
