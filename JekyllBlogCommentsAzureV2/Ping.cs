@@ -9,7 +9,7 @@ namespace JekyllBlogCommentsAzureV2
     public static class Ping
     {
         [FunctionName("Ping")]
-        public static IActionResult Run([HttpTrigger(AuthorizationLevel.Function, "get", Route = null)]HttpRequest request, ILogger log)
+        public static IActionResult Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)]HttpRequest request, ILogger log)
         {
             log.LogInformation("Ping request received.");
 

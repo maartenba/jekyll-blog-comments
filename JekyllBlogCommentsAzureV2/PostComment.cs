@@ -28,7 +28,7 @@ namespace JekyllBlogCommentsAzureV2
 
         [FunctionName("PostComment")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest request, 
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)]HttpRequest request, 
             ILogger log, 
             ExecutionContext context)
         {
