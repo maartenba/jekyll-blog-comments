@@ -1,49 +1,69 @@
-﻿using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
-using Octokit;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Configuration;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Octokit;
 using YamlDotNet.Serialization;
 
-namespace JekyllBlogCommentsAzure
+namespace JekyllBlogCommentsAzureV2
 {
-    public static class PostCommentToPullRequestFunction
+    public static class PostComment
     {
-        struct MissingRequiredValue { } // Placeholder for missing required form values
-        static readonly Regex validPathChars = new Regex(@"[^a-zA-Z0-9-]"); // Valid characters when mapping from the blog post slug to a file path
-        static readonly Regex validEmail = new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$"); // Simplest form of email validation
+        private struct MissingRequiredValue { } // Placeholder for missing required form values
+
+        private static readonly Regex ValidPathChars = new Regex(@"[^a-zA-Z0-9-]"); // Valid characters when mapping from the blog post slug to a file path
+        private static readonly Regex ValidEmail = new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$"); // Simplest form of email validation
 
         [FunctionName("PostComment")]
-        public static async Task<HttpResponseMessage> Run([HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequestMessage request)
+        public static async Task<IActionResult> Run(
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest request, 
+            ILogger log, 
+            ExecutionContext context)
         {
-            var form = await request.Content.ReadAsFormDataAsync();
+            // Read configuration
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(context.FunctionAppDirectory)
+                .AddJsonFile("local.settings.json", optional: true, reloadOnChange: true)
+                .AddEnvironmentVariables()
+                .Build();
 
             // Make sure the site posting the comment is the correct site.
-            var allowedSite = ConfigurationManager.AppSettings["CommentWebsiteUrl"];
-            var postedSite = form["comment-site"];
-            if (!String.IsNullOrWhiteSpace(allowedSite) && !AreSameSites(allowedSite, postedSite))
-                return request.CreateErrorResponse(HttpStatusCode.BadRequest, $"This Jekyll comments receiever does not handle forms for '${postedSite}'. You should point to your own instance.");
+            var allowedSite = configuration["CommentWebsiteUrl"];
+            var postedSite = request.Form["comment-site"];
+            if (!string.IsNullOrWhiteSpace(allowedSite) && !AreSameSites(allowedSite, postedSite))
+            {
+                return new BadRequestErrorMessageResult(
+                    $"This Jekyll comments receiever does not handle forms for '${postedSite}'. You should point to your own instance.");
+            }
 
-            if (TryCreateCommentFromForm(form, out var comment, out var errors))
-                await CreateCommentAsPullRequest(comment);
+            if (TryCreateCommentFromForm(request.Form, out var comment, out var errors))
+            {
+                await CreateCommentAsPullRequest(configuration, comment);
+            }
 
             if (errors.Any())
-                return request.CreateErrorResponse(HttpStatusCode.BadRequest, String.Join("\n", errors));
+            {
+                return new BadRequestErrorMessageResult(String.Join("\n", errors));
+            }
 
-            if (!Uri.TryCreate(form["redirect"], UriKind.Absolute, out var redirectUri))
-                return request.CreateResponse(HttpStatusCode.OK);
+            if (!Uri.TryCreate(configuration["RedirectUrl"], UriKind.Absolute, out var redirectUri))
+            {
+                return new OkResult();
+            }
 
-            var response = request.CreateResponse(HttpStatusCode.Redirect);
-            response.Headers.Location = redirectUri;
-            return response;
+            return new RedirectResult(redirectUri.ToString());
         }
 
         private static bool AreSameSites(string commentSite, string postedCommentSite)
@@ -53,14 +73,14 @@ namespace JekyllBlogCommentsAzure
                 && commentSiteUri.Host.Equals(postedCommentSiteUri.Host, StringComparison.OrdinalIgnoreCase);
         }
 
-        private static async Task<PullRequest> CreateCommentAsPullRequest(Comment comment)
+        private static async Task<PullRequest> CreateCommentAsPullRequest(IConfigurationRoot configuration, Comment comment)
         {
             // Create the Octokit client
             var github = new GitHubClient(new ProductHeaderValue("PostCommentToPullRequest"),
-                new Octokit.Internal.InMemoryCredentialStore(new Credentials(ConfigurationManager.AppSettings["GitHubToken"])));
+                new Octokit.Internal.InMemoryCredentialStore(new Credentials(configuration["GitHubToken"])));
 
             // Get a reference to our GitHub repository
-            var repoOwnerName = ConfigurationManager.AppSettings["PullRequestRepository"].Split('/');
+            var repoOwnerName = configuration["PullRequestRepository"].Split('/');
             var repo = await github.Repository.Get(repoOwnerName[0], repoOwnerName[1]);
 
             // Create a new branch from the default branch
@@ -70,14 +90,14 @@ namespace JekyllBlogCommentsAzure
             // Create a new file with the comments in it
             var fileRequest = new CreateFileRequest($"Comment by {comment.name} on {comment.post_id}", new SerializerBuilder().Build().Serialize(comment), newBranch.Ref)
             {
-                Committer = new Committer(comment.name, comment.email ?? ConfigurationManager.AppSettings["CommentFallbackCommitEmail"] ?? "redacted@example.com", comment.date)
+                Committer = new Committer(comment.name, comment.email ?? configuration["CommentFallbackCommitEmail"] ?? "redacted@example.com", comment.date)
             };
             await github.Repository.Content.CreateFile(repo.Id, $"_data/comments/{comment.post_id}/{comment.id}.yml", fileRequest);
 
             // Create a pull request for the new branch and file
             return await github.Repository.PullRequest.Create(repo.Id, new NewPullRequest(fileRequest.Message, newBranch.Ref, defaultBranch.Name)
             {
-                Body = $"avatar: <img src=\"{comment.avatar}\" width=\"64\" height=\"64\" />\n\n{comment.message}"
+                Body = $"<img src=\"{comment.avatar}\" width=\"64\" height=\"64\" />\n\n**Comment by {comment.name} on {comment.post_id}:**\n\n{comment.message}"
             });
         }
 
@@ -97,7 +117,7 @@ namespace JekyllBlogCommentsAzure
         /// <param name="comment">Created <see cref="Comment"/> if no errors occurred.</param>
         /// <param name="errors">A list containing any potential validation errors.</param>
         /// <returns>True if the Comment was able to be created, false if validation errors occurred.</returns>
-        private static bool TryCreateCommentFromForm(NameValueCollection form, out Comment comment, out List<string> errors)
+        private static bool TryCreateCommentFromForm(IFormCollection form, out Comment comment, out List<string> errors)
         {
             var constructor = typeof(Comment).GetConstructors()[0];
             var values = constructor.GetParameters()
@@ -107,8 +127,10 @@ namespace JekyllBlogCommentsAzure
                 );
 
             errors = values.Where(p => p.Value is MissingRequiredValue).Select(p => $"Form value missing for {p.Key}").ToList();
-            if (values["email"] is string s && !validEmail.IsMatch(s))
+            if (values["email"] is string s && !ValidEmail.IsMatch(s))
+            {
                 errors.Add("email not in correct format");
+            }
 
             comment = errors.Any() ? null : (Comment)constructor.Invoke(values.Values.ToArray());
             return !errors.Any();
@@ -117,20 +139,39 @@ namespace JekyllBlogCommentsAzure
         /// <summary>
         /// Represents a Comment to be written to the repository in YML format.
         /// </summary>
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        [SuppressMessage("ReSharper", "MemberCanBePrivate.Local")]
+        [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
         private class Comment
         {
             public Comment(string post_id, string message, string name, string email = null, Uri url = null, string avatar = null)
             {
-                this.post_id = validPathChars.Replace(post_id, "-");
+                this.post_id = ValidPathChars.Replace(post_id, "-");
                 this.message = message;
                 this.name = name;
                 this.email = email;
+                if (!string.IsNullOrEmpty(email))
+                {
+                    var md5 = System.Security.Cryptography.MD5.Create();
+                    var inputBytes = Encoding.ASCII.GetBytes(email.Trim().ToLowerInvariant());
+                    var hash = md5.ComputeHash(inputBytes);
+
+                    var sb = new StringBuilder();
+                    for (int i = 0; i < hash.Length; i++)
+                    {
+                        sb.Append(hash[i].ToString("X2"));
+                    }
+
+                    avatar = "https://secure.gravatar.com/avatar/" + sb.ToString().ToLowerInvariant() + "?s=80&r=pg";
+                }
                 this.url = url;
 
                 date = DateTime.UtcNow;
-                id = new {this.post_id, this.name, this.message, this.date}.GetHashCode().ToString("x8");
+                id = new { this.post_id, this.name, this.message, date }.GetHashCode().ToString("x8");
                 if (Uri.TryCreate(avatar, UriKind.Absolute, out Uri avatarUrl))
+                {
                     this.avatar = avatarUrl;
+                }
             }
 
             [YamlIgnore]
