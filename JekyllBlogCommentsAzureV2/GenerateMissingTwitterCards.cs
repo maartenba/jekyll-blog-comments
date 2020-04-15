@@ -166,7 +166,7 @@ namespace JekyllBlogCommentsAzureV2
                     }
                     
                     // Stop after X items
-                    if (++itemsCreated >= 10) break;
+                    if (++itemsCreated >= 25) break;
                 }
             }
 
