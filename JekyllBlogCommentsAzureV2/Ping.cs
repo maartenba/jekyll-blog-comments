@@ -16,6 +16,7 @@ namespace JekyllBlogCommentsAzureV2
         public static async Task<IActionResult> RunAsync(
                 [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)]
                 HttpRequest request,
+                
                 ILogger log)
         {
             log.LogInformation("Ping request received.");

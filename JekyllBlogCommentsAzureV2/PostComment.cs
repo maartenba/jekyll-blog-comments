@@ -30,8 +30,11 @@ namespace JekyllBlogCommentsAzureV2
 
         [FunctionName("PostComment")]
         public static async Task<IActionResult> RunAsync(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)]HttpRequest request, 
-            ILogger log, 
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)]
+            HttpRequest request, 
+            
+            ILogger log,
+            
             ExecutionContext context)
         {
             // Read configuration
@@ -47,7 +50,7 @@ namespace JekyllBlogCommentsAzureV2
             if (!string.IsNullOrWhiteSpace(allowedSite) && !AreSameSites(allowedSite, postedSite))
             {
                 return new BadRequestErrorMessageResult(
-                    $"This Jekyll comments receiever does not handle forms for '${postedSite}'. You should point to your own instance.");
+                    $"This Jekyll comments receiver does not handle forms for '${postedSite}'. You should point to your own instance.");
             }
 
             log.LogInformation("Try creating comment from form...");

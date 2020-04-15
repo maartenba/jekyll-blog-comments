@@ -1,7 +1,12 @@
 {
   "version": "2.0",
-  "functions": [
-    "Ping",
-    "PostComment"
-  ]
+  "functionTimeout": "00:10:00",
+  "extensions": {
+    "http": {
+      "routePrefix": "api",
+      "maxOutstandingRequests": 200,
+      "maxConcurrentRequests": 100,
+      "dynamicThrottlesEnabled": true
+    }
+  }
 }
