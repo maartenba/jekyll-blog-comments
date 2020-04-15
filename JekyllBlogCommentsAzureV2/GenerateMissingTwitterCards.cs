@@ -12,7 +12,6 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.WindowsAzure.Storage.Blob;
 using Octokit;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -110,14 +109,14 @@ namespace JekyllBlogCommentsAzureV2
                 
                     // Shadow and box
                     DrawRectangle(cardImage, shadowOffset, shadowOffset, cardWidth - shadowOffset, cardHeight - shadowOffset, Color.Gray);
-                    DrawRectangle(cardImage, 0, 0, cardWidth - shadowOffset, cardHeight - shadowOffset, Color.LightGray);
+                    DrawRectangle(cardImage, 0, 0, cardWidth - shadowOffset, cardHeight - shadowOffset, Color.White);
              
                     // Title
                     DrawText(cardImage, titleLocation.X, titleLocation.Y, cardWidth - textPadding - textPadding - textPadding - shadowOffset, Color.Black, font.CreateFont(titleSize, FontStyle.Bold), 
                         frontMatter.Title);
                 
                     // Author & date
-                    DrawText(cardImage, authorLocation.X, authorLocation.Y, cardWidth - textPadding - textPadding - textPadding - shadowOffset, Color.Black, font.CreateFont(authorSize), 
+                    DrawText(cardImage, authorLocation.X, authorLocation.Y, cardWidth - textPadding - textPadding - textPadding - shadowOffset, Color.DarkGray, font.CreateFont(authorSize), 
                         (frontMatter.Author ?? "") + (frontMatter.Date?.ToString(" | MMMM dd, yyyy", CultureInfo.InvariantCulture) ?? ""));
                 
                     // Render card image
