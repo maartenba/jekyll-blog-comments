@@ -28,7 +28,7 @@ namespace JekyllBlogCommentsAzureV2
         private static readonly Regex ValidPathChars = new Regex(@"[^a-zA-Z0-9-]"); // Valid characters when mapping from the blog post slug to a file path
         private static readonly Regex ValidEmail = new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$"); // Simplest form of email validation
 
-        [FunctionName("PostComment")]
+        [FunctionName(nameof(PostComment))]
         public static async Task<IActionResult> RunAsync(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)]
             HttpRequest request, 

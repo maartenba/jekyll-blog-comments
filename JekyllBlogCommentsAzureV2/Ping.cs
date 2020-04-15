@@ -12,7 +12,7 @@ namespace JekyllBlogCommentsAzureV2
     [UsedImplicitly]
     public static class Ping
     {
-        [FunctionName("Ping")]
+        [FunctionName(nameof(Ping))]
         public static async Task<IActionResult> RunAsync(
                 [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)]
                 HttpRequest request,

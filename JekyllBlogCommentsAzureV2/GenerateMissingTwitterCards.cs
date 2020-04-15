@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
@@ -12,6 +13,8 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Blob;
 using Octokit;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -28,23 +31,33 @@ namespace JekyllBlogCommentsAzureV2
     [UsedImplicitly]
     public static class GenerateMissingTwitterCards
     {
-        private static DateTimeOffset _lastRun = DateTimeOffset.MinValue;
-        
-        [FunctionName("GenerateMissingTwitterCards")]
+        [FunctionName(nameof(GenerateMissingTwitterCards))]
         public static async Task<IActionResult> RunAsync(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)]
             HttpRequest request,
 
+            [Blob("locks/" + nameof(GenerateMissingTwitterCards), Connection = "AzureWebJobsStorage")]
+            ICloudBlob lockBlob,
+            
             ILogger log,
             
             ExecutionContext context)
         {
-            // Check last run
-            if (_lastRun.AddMinutes(10) >= DateTimeOffset.UtcNow)
+            // Lock present?
+            string lockIdentifier = null;
+            if (!await lockBlob.ExistsAsync())
             {
-                return new OkObjectResult("Skipping run - too recent.");
+                await lockBlob.UploadFromByteArrayAsync(new byte[1], 0, 1);
             }
-            _lastRun = DateTimeOffset.UtcNow;
+            
+            try
+            {
+                lockIdentifier = await lockBlob.AcquireLeaseAsync(TimeSpan.FromMinutes(2));
+            }
+            catch (StorageException ex) when (ex.RequestInformation?.HttpStatusCode == (int)HttpStatusCode.Conflict || ex.RequestInformation?.HttpStatusCode == (int)HttpStatusCode.PreconditionFailed)
+            {
+                return new OkObjectResult("Could not acquire lock, skipping execution.");
+            }
             
             // Read configuration
             var configuration = new ConfigurationBuilder()
@@ -142,11 +155,22 @@ namespace JekyllBlogCommentsAzureV2
                     var commit = await github.Git.Commit.Create(repo.Id, newCommit);
                     newBranch = await github.Git.Reference.Update(repo.Id, newBranch.Ref, new ReferenceUpdate(commit.Sha));
 
+                    // Renew lease
+                    try
+                    {
+                        await lockBlob.RenewLeaseAsync(new AccessCondition { LeaseId = lockIdentifier });
+                    }
+                    catch (StorageException ex) when (ex.RequestInformation?.HttpStatusCode == (int)HttpStatusCode.Conflict || ex.RequestInformation?.HttpStatusCode == (int)HttpStatusCode.PreconditionFailed)
+                    {
+                        break;
+                    }
+                    
                     // Stop after X items
-                    if (++itemsCreated >= 20) break;
+                    if (++itemsCreated >= 10) break;
                 }
             }
 
+            // Create PR
             if (newBranch != null)
             {
                 await github.Repository.PullRequest.Create(repo.Id, new NewPullRequest($"[Automatic] Add missing Twitter cards", newBranch.Ref, defaultBranch.Name)
@@ -154,7 +178,10 @@ namespace JekyllBlogCommentsAzureV2
                     Body = $"Add Twitter cards for various posts"
                 });
             }
-
+            
+            // Release lock
+            await lockBlob.ReleaseLeaseAsync(new AccessCondition { LeaseId = lockIdentifier });
+            
             return new OkObjectResult("Done.");
         }
 

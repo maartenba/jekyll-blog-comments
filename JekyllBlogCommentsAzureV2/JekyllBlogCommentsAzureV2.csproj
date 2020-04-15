@@ -30,4 +30,7 @@
       <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <None Remove="twitter-card-bg.png" />
+  </ItemGroup>
 </Project>
