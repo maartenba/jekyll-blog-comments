@@ -8,8 +8,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Meta", "Meta", "{464BAC08-6
 		.gitattributes = .gitattributes
 		.gitignore = .gitignore
 		CODE_OF_CONDUCT.md = CODE_OF_CONDUCT.md
-		LICENSE = LICENSE
 		README.md = README.md
+		LICENSE.txt = LICENSE.txt
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JekyllBlogCommentsAzureV2", "JekyllBlogCommentsAzureV2\JekyllBlogCommentsAzureV2.csproj", "{CD972A24-53A7-4235-8ED0-6E7A13E07631}"

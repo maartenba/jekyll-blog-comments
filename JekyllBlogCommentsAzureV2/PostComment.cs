@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web.Http;
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
@@ -20,6 +20,7 @@ using YamlDotNet.Serialization;
 
 namespace JekyllBlogCommentsAzureV2
 {
+    [UsedImplicitly]
     public static class PostComment
     {
         private struct MissingRequiredValue { } // Placeholder for missing required form values
@@ -28,7 +29,7 @@ namespace JekyllBlogCommentsAzureV2
         private static readonly Regex ValidEmail = new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$"); // Simplest form of email validation
 
         [FunctionName("PostComment")]
-        public static async Task<IActionResult> Run(
+        public static async Task<IActionResult> RunAsync(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)]HttpRequest request, 
             ILogger log, 
             ExecutionContext context)
@@ -79,6 +80,7 @@ namespace JekyllBlogCommentsAzureV2
                 && commentSiteUri.Host.Equals(postedCommentSiteUri.Host, StringComparison.OrdinalIgnoreCase);
         }
 
+        // ReSharper disable once UnusedMethodReturnValue.Local
         private static async Task<PullRequest> CreateCommentAsPullRequest(IConfigurationRoot configuration, Comment comment)
         {
             // Create the Octokit client

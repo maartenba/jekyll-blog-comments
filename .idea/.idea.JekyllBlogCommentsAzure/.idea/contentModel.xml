@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ContentModelStore">
+    <e p="C:\Users\maart\AppData\local\JetBrains\Rider2020.1\extResources" t="IncludeRecursive" />
+    <e p="C:\Users\maart\AppData\local\JetBrains\Rider2020.1\resharper-host\local\Transient\ReSharperHost\v201\SolutionCaches\_JekyllBlogCommentsAzure.-1857708369.00" t="ExcludeRecursive" />
+    <e p="C:\Users\maart\AppData\Roaming\JetBrains\Rider2020.1\consoles\db" t="IncludeRecursive" />
+    <e p="C:\Users\maart\AppData\Roaming\JetBrains\Rider2020.1\extensions" t="IncludeRecursive" />
+    <e p="C:\Users\maart\AppData\Roaming\JetBrains\Rider2020.1\scratches" t="IncludeRecursive" />
+    <e p="D:\Projects\Git\jekyll-blog-comments" t="IncludeFlat">
+      <e p=".gitattributes" t="Include" />
+      <e p=".gitignore" t="Include" />
+      <e p="CODE_OF_CONDUCT.md" t="Include" />
+      <e p="JekyllBlogCommentsAzure.sln" t="IncludeFlat" />
+      <e p="JekyllBlogCommentsAzureV2" t="IncludeRecursive">
+        <e p="bin\Debug\netstandard2.0\bin" t="ExcludeRecursive" />
+        <e p="host.json" t="Include" />
+        <e p="JekyllBlogCommentsAzureV2.csproj" t="IncludeRecursive" />
+        <e p="local.settings.json" t="Include" />
+        <e p="obj" t="ExcludeRecursive">
+          <e p="Debug" t="Include">
+            <e p="netcoreapp3.1" t="Include">
+              <e p="JekyllBlogCommentsAzureV2.AssemblyInfo.cs" t="Include" />
+            </e>
+          </e>
+        </e>
+        <e p="Ping.cs" t="Include" />
+        <e p="PostComment.cs" t="Include" />
+        <e p="Properties" t="Include">
+          <e p="xlaunchSettings.json" t="Include" />
+        </e>
+      </e>
+      <e p="LICENSE.txt" t="Include" />
+      <e p="Meta" t="Include" />
+      <e p="packages" t="ExcludeRecursive" />
+      <e p="README.md" t="Include" />
+    </e>
+  </component>
+</project>
