@@ -31,7 +31,6 @@ namespace JekyllBlogCommentsAzureV2
         private static DateTimeOffset _lastRun = DateTimeOffset.MinValue;
         
         [FunctionName("GenerateMissingTwitterCards")]
-        [Singleton(Mode = SingletonMode.Function)]
         public static async Task<IActionResult> RunAsync(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)]
             HttpRequest request,
@@ -41,9 +40,9 @@ namespace JekyllBlogCommentsAzureV2
             ExecutionContext context)
         {
             // Check last run
-            if (_lastRun.AddMinutes(15) >= DateTimeOffset.UtcNow)
+            if (_lastRun.AddMinutes(10) >= DateTimeOffset.UtcNow)
             {
-                return new OkResult();
+                return new OkObjectResult("Skipping run - too recent.");
             }
             _lastRun = DateTimeOffset.UtcNow;
             
@@ -144,7 +143,7 @@ namespace JekyllBlogCommentsAzureV2
                     newBranch = await github.Git.Reference.Update(repo.Id, newBranch.Ref, new ReferenceUpdate(commit.Sha));
 
                     // Stop after X items
-                    if (++itemsCreated >= 50) break;
+                    if (++itemsCreated >= 20) break;
                 }
             }
 
@@ -156,7 +155,7 @@ namespace JekyllBlogCommentsAzureV2
                 });
             }
 
-            return new OkResult();
+            return new OkObjectResult("Done.");
         }
 
         private static void DrawRectangle(Image image, float x, float y, int width, int height, Color color)
