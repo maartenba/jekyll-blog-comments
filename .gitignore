@@ -136,3 +136,4 @@ UpgradeLog*.htm
 *.mdf
 *.ldf
 
+.idea/.idea.JekyllBlogCommentsAzure/.idea/contentModel.xml
