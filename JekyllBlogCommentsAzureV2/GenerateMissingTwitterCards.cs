@@ -41,7 +41,7 @@ namespace JekyllBlogCommentsAzureV2
             ExecutionContext context)
         {
             // Check last run
-            if (_lastRun.AddMinutes(5) >= DateTimeOffset.UtcNow)
+            if (_lastRun.AddMinutes(15) >= DateTimeOffset.UtcNow)
             {
                 return new OkResult();
             }
