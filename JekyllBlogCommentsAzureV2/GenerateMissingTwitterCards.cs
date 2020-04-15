@@ -52,7 +52,7 @@ namespace JekyllBlogCommentsAzureV2
             
             try
             {
-                lockIdentifier = await lockBlob.AcquireLeaseAsync(TimeSpan.FromMinutes(2));
+                lockIdentifier = await lockBlob.AcquireLeaseAsync(TimeSpan.FromMinutes(1));
             }
             catch (StorageException ex) when (ex.RequestInformation?.HttpStatusCode == (int)HttpStatusCode.Conflict || ex.RequestInformation?.HttpStatusCode == (int)HttpStatusCode.PreconditionFailed)
             {
