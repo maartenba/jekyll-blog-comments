@@ -76,7 +76,7 @@ namespace JekyllBlogCommentsAzureV2
             var authorSize = 28;
             var titleLocation = cardStyle == CardStyle.Light
                 ? new PointF(textPadding, cardHeight / 3)
-                : new PointF(textPadding, cardHeight / 3.5f);
+                : new PointF(textPadding, cardHeight / 3.6f);
             var authorLocation = cardStyle == CardStyle.Light
                 ? new PointF(textPadding, cardHeight / 3 + authorSize)
                 : new PointF(textPadding, cardHeight / 4 + authorSize * 2);
@@ -121,6 +121,9 @@ namespace JekyllBlogCommentsAzureV2
                     frontMatterYaml = frontMatterYamlTemp[1];
                     var frontMatter = yamlDeserializer
                         .Deserialize<FrontMatter>(frontMatterYaml);
+                    
+                    // Cleanup front matter
+                    frontMatter.Title = frontMatter.Title.Replace("&amp;", "&");
 
                     // Generate card image
                     using var cardImage = new Image<Rgba32>(cardWidth, cardHeight);
@@ -146,11 +149,11 @@ namespace JekyllBlogCommentsAzureV2
                         DrawImage(cardImage, 0, 0, cardWidth, cardHeight, backgroundImage);
 
                         // Title
-                        DrawText(cardImage, titleLocation.X, titleLocation.Y, cardWidth - textPadding - textPadding - textPadding - shadowOffset, Color.White, font.CreateFont(titleSize, FontStyle.Bold), 
+                        DrawText(cardImage, titleLocation.X, titleLocation.Y, cardWidth - textPadding - textPadding - textPadding - textPadding, Color.White, font.CreateFont(titleSize, FontStyle.Bold), 
                             frontMatter.Title);
                     
                         // Author & date
-                        DrawText(cardImage, authorLocation.X, authorLocation.Y, cardWidth - textPadding - textPadding - textPadding - shadowOffset, Color.White, font.CreateFont(authorSize, FontStyle.Italic), 
+                        DrawText(cardImage, authorLocation.X, authorLocation.Y, cardWidth - textPadding - textPadding - textPadding - textPadding, Color.White, font.CreateFont(authorSize, FontStyle.Italic), 
                             (frontMatter.Author ?? "") + (frontMatter.Date?.ToString(" | MMMM dd, yyyy", CultureInfo.InvariantCulture) ?? ""));
                     }
                     
@@ -178,6 +181,8 @@ namespace JekyllBlogCommentsAzureV2
                     var commit = await github.Git.Commit.Create(repo.Id, newCommit);
                     newBranch = await github.Git.Reference.Update(repo.Id, newBranch.Ref, new ReferenceUpdate(commit.Sha));
 
+                    log.LogInformation($"Generated Twitter card for: {frontMatter.Title}");
+                    
                     // Renew lease
                     try
                     {
@@ -256,11 +261,11 @@ namespace JekyllBlogCommentsAzureV2
             public List<string> Tags { get; set; } = new List<string>();
             public DateTimeOffset? Date { get; set; }
         }
-    }
 
-    enum CardStyle
-    {
-        Light,
-        DarkWithBackgroundImage
+        private enum CardStyle
+        {
+            Light,
+            DarkWithBackgroundImage
+        }
     }
 }
