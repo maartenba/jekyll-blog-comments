@@ -145,7 +145,7 @@ namespace JekyllBlogCommentsAzureV2
                     else if (cardStyle == CardStyle.DarkWithBackgroundImage)
                     {
                         // Draw background image
-                        using var backgroundImage = Image.Load("./Images/TwitterCardBackground.png");
+                        using var backgroundImage = Image.Load(System.IO.Path.Combine(context.FunctionAppDirectory, "Images", "TwitterCardBackground.png"));
                         DrawImage(cardImage, 0, 0, cardWidth, cardHeight, backgroundImage);
 
                         // Title
