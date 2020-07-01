@@ -67,14 +67,19 @@ namespace JekyllBlogCommentsAzureV2
                 .Build();
             
             // Defaults
+            var cardStyle = CardStyle.DarkWithBackgroundImage;
             var cardWidth = 876;
             var cardHeight = 438;
             var textPadding = 25;
             var shadowOffset = 10;
             var titleSize = 42;
             var authorSize = 28;
-            var titleLocation = new PointF(textPadding, cardHeight / 3);
-            var authorLocation = new PointF(textPadding, cardHeight / 3 + authorSize);
+            var titleLocation = cardStyle == CardStyle.Light
+                ? new PointF(textPadding, cardHeight / 3)
+                : new PointF(textPadding, cardHeight / 3.5f);
+            var authorLocation = cardStyle == CardStyle.Light
+                ? new PointF(textPadding, cardHeight / 3 + authorSize)
+                : new PointF(textPadding, cardHeight / 4 + authorSize * 2);
             var font = Environment.OSVersion.Platform == PlatformID.Unix
                 ? SystemFonts.Find("DejaVu Sans")
                 : SystemFonts.Find("Segoe UI");
@@ -117,20 +122,38 @@ namespace JekyllBlogCommentsAzureV2
                     var frontMatter = yamlDeserializer
                         .Deserialize<FrontMatter>(frontMatterYaml);
 
+                    // Generate card image
                     using var cardImage = new Image<Rgba32>(cardWidth, cardHeight);
-                
-                    // Shadow and box
-                    DrawRectangle(cardImage, shadowOffset, shadowOffset, cardWidth - shadowOffset, cardHeight - shadowOffset, Color.Gray);
-                    DrawRectangle(cardImage, 0, 0, cardWidth - shadowOffset, cardHeight - shadowOffset, Color.White);
-             
-                    // Title
-                    DrawText(cardImage, titleLocation.X, titleLocation.Y, cardWidth - textPadding - textPadding - textPadding - shadowOffset, Color.Black, font.CreateFont(titleSize, FontStyle.Bold), 
-                        frontMatter.Title);
-                
-                    // Author & date
-                    DrawText(cardImage, authorLocation.X, authorLocation.Y, cardWidth - textPadding - textPadding - textPadding - shadowOffset, Color.DarkGray, font.CreateFont(authorSize), 
-                        (frontMatter.Author ?? "") + (frontMatter.Date?.ToString(" | MMMM dd, yyyy", CultureInfo.InvariantCulture) ?? ""));
-                
+                    
+                    if (cardStyle == CardStyle.Light)
+                    {
+                        // Shadow and box
+                        DrawRectangle(cardImage, shadowOffset, shadowOffset, cardWidth - shadowOffset, cardHeight - shadowOffset, Color.Gray);
+                        DrawRectangle(cardImage, 0, 0, cardWidth - shadowOffset, cardHeight - shadowOffset, Color.White);
+                 
+                        // Title
+                        DrawText(cardImage, titleLocation.X, titleLocation.Y, cardWidth - textPadding - textPadding - textPadding - shadowOffset, Color.Black, font.CreateFont(titleSize, FontStyle.Bold), 
+                            frontMatter.Title);
+                    
+                        // Author & date
+                        DrawText(cardImage, authorLocation.X, authorLocation.Y, cardWidth - textPadding - textPadding - textPadding - shadowOffset, Color.DarkGray, font.CreateFont(authorSize), 
+                            (frontMatter.Author ?? "") + (frontMatter.Date?.ToString(" | MMMM dd, yyyy", CultureInfo.InvariantCulture) ?? ""));
+                    }
+                    else if (cardStyle == CardStyle.DarkWithBackgroundImage)
+                    {
+                        // Draw background image
+                        using var backgroundImage = Image.Load("./Images/TwitterCardBackground.png");
+                        DrawImage(cardImage, 0, 0, cardWidth, cardHeight, backgroundImage);
+
+                        // Title
+                        DrawText(cardImage, titleLocation.X, titleLocation.Y, cardWidth - textPadding - textPadding - textPadding - shadowOffset, Color.White, font.CreateFont(titleSize, FontStyle.Bold), 
+                            frontMatter.Title);
+                    
+                        // Author & date
+                        DrawText(cardImage, authorLocation.X, authorLocation.Y, cardWidth - textPadding - textPadding - textPadding - shadowOffset, Color.White, font.CreateFont(authorSize, FontStyle.Italic), 
+                            (frontMatter.Author ?? "") + (frontMatter.Date?.ToString(" | MMMM dd, yyyy", CultureInfo.InvariantCulture) ?? ""));
+                    }
+                    
                     // Render card image
                     await using var memoryStream = new MemoryStream();
                     cardImage.Save(memoryStream, PngFormat.Instance);
@@ -185,6 +208,15 @@ namespace JekyllBlogCommentsAzureV2
             return new OkObjectResult("Done.");
         }
 
+        private static void DrawImage(Image image, float x, float y, int width, int height, Image other)
+        {
+            other.Mutate(ctx =>
+                ctx.Resize(width, height));
+
+            image.Mutate(ctx => 
+                ctx.DrawImage(other, new Point(0, 0), opacity: 1f));
+        }
+
         private static void DrawRectangle(Image image, float x, float y, int width, int height, Color color)
         {
             image.Mutate(ctx => 
@@ -224,5 +256,11 @@ namespace JekyllBlogCommentsAzureV2
             public List<string> Tags { get; set; } = new List<string>();
             public DateTimeOffset? Date { get; set; }
         }
+    }
+
+    enum CardStyle
+    {
+        Light,
+        DarkWithBackgroundImage
     }
 }
